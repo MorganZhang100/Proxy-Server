@@ -10,76 +10,70 @@ public class ClientHandler implements Runnable {
 
 	public ClientHandler(Socket clientSocket) {
         this.clientSocket = clientSocket;
-        System.out.println("I'm created~~~~~~~~~~~~~~~~~~~~~~~~");
+        System.out.println("I'm created~~~~~~~~~~~~");
     }
 
     @Override
 	public void run() {
 		try {
-			System.out.println("I'm running!!!!!!!!!!!!!!!!!!!!!!!!!!!");
+			System.out.println("I'm running!!!!!!!!!");
 			String processedRequestString = processRequest(clientSocket);
+			if(processedRequestString.equals("")) {
+				System.out.println("End, because no command");
+				return;
+			}
 			String returnData = toHost(clientSocket, processedRequestString);
-			returnDataToBrowser(clientSocket, returnData);
 		}
 		catch (IOException ioe) {
 			ioe.printStackTrace(System.err);
 		}
 	}
 
-	void returnDataToBrowser(Socket clientSocket, String returnData) throws IOException {
-		System.out.println("[E]" + clientSocket);
-
-		OutputStream toClient = clientSocket.getOutputStream();
-		PrintStream toClientPOut = new PrintStream(toClient);
-
-		System.out.println("before r");
-		System.out.println(returnData);
-		System.out.println("after r");
-
-		toClientPOut.println(returnData);
-		toClient.close();
-		System.out.println("[F]");
-	}
-
 	String processRequest(Socket clientSocket) throws IOException {
-		System.out.println("[A inside] Start on port: " + clientSocket.getPort());
-		//OutputStream out = clientSocket.getOutputStream();
 		InputStream in = clientSocket.getInputStream();
 		DataInputStream din = new DataInputStream(in);
 		String line = din.readLine();
+		String firstLine = line;
+
+		if(line.equals("")) {
+			System.out.println("End, because no command");
+			clientSocket.close();
+			return "";
+		}
 
 		String processedLine = "";
+		int content_length = 0;
 
-		while (!line.equals("")) {
+		while (line!=null && line.length()>0) {
 
 			String helpStringArray[] = line.split(":");
-			if( helpStringArray[0].equals("User-Agent") || helpStringArray[0].equals("Proxy-Connection") || helpStringArray[0].equals("Referer") ) {
-				//System.out.print("****");
+			if( helpStringArray[0].toLowerCase().equals("user-agent") || helpStringArray[0].equals("proxy-connection") || helpStringArray[0].equals("referer") ) {
 			}
 			else {
 				processedLine = processedLine + line + "\n";
 			}
-			System.out.println(line);
-			//System.out.println("--");
-			line = din.readLine();
 
-			// if( line.equals("") ) System.out.println(" >>>>> should end here");
-			// else System.out.println("<<< continue");
+			if ( line.toLowerCase().startsWith("content-length") ) {
+				int colon = line.indexOf(":");
+				String opnd = line.substring(colon+1);
+				content_length = Integer.valueOf(opnd.trim());
+			}
+
+			line = din.readLine();
 		}
 
-		System.out.println("^^^^^^^^^ ^^^^^^");
-		System.out.println("[B inside] closing port: " + clientSocket.getPort());
-
-		//din.close();
-		//clientSocket.close();
-
-		//System.out.println(processedLine);
+		String postData = null;
+		if ( firstLine.startsWith("POST") ) {
+			postData = read(din, content_length);
+			System.out.println(" ZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZ " + postData);
+			processedLine = processedLine + "\r\n" +postData;
+		}
 
 		return processedLine;
 	}
 
 	String toHost(Socket clientSocket, String processedRequestString) throws IOException {
-		System.out.println("[C inside] Start on port: " + clientSocket.getPort());
+		System.out.println("[C inside]" );
 		String lines[] = processedRequestString.split("\n");
 		String firstLine = lines[0];
 
@@ -91,63 +85,65 @@ public class ClientHandler implements Runnable {
 
 		String hostUrl = elements3[0];
 
-		System.out.println(":::::: " + hostUrl);
-
 		Socket toHostSocket = new Socket(hostUrl, 80);
 		OutputStream toHostOut = toHostSocket.getOutputStream();
 		PrintStream toHostPOut = new PrintStream(toHostOut);
+				
+		processedRequestString = processedRequestString.replace("HTTP/1.1","HTTP/1.0");
+		processedRequestString = processedRequestString.replace("http://" + hostUrl ,"");
 		
+		System.out.println("*\n*\n*\n" + processedRequestString + "*\n*\n*\n");
 		toHostPOut.println(processedRequestString);
-		
 
 		InputStream toHostIn = toHostSocket.getInputStream();
 		DataInputStream toHostDIn = new DataInputStream(toHostIn);
-		String line = toHostDIn.readLine();
+
+		byte readByte[] = new byte[8];
 
 		String returnData = "";
 
 		int timer = 0;
 
-		while (true) {
+		OutputStream toClient = clientSocket.getOutputStream();
+		DataOutputStream toClientDataStream = new DataOutputStream(toClient);
 
-			// String helpStringArray[] = line.split(":");
-			// if( helpStringArray[0].equals("User-Agent") || helpStringArray[0].equals("Proxy-Connection") || helpStringArray[0].equals("Referer") ) {
-			// 	System.out.print("****");
-			// }
-			// else {
-			// 	processedLine = processedLine + "\n" + line;
-			// }
-			if( line.equals("")) timer++;
-			if( line.equals("") && timer == 2 ) break;
-
-			returnData = returnData + line + "\n";
-
-			System.out.println("-=> " + line);
-
-			line = toHostDIn.readLine();
+		if( clientSocket.isClosed() ) {
+			System.out.println(" ################### socket closed");
 		}
-		System.out.println("end print\n\n\n\n\n\n");
+		else System.out.println(" ################### socket open!!!!!!!!!!!");
+		
+		String responseHead = "";
+
+		while (toHostDIn.read(readByte)!=-1) {
+			toClientDataStream.write(readByte);
+		}
+
+		//System.out.println("\nend print\n\n\n\n\n\n");
 
 		toHostPOut.close();
 		toHostDIn.close();
 
-		System.out.println("[D inside] closing port: " + toHostSocket.getPort());
+		toClientDataStream.close();
 
 		toHostSocket.close();
+		clientSocket.close();
 
 		return returnData;
 	}
 
-
- //    forwardRemoteDataToBrowser()
-	// getHeaders()
-	// makeUpstreamRequest()
-	// openUpstreamSocket()
-	// process()
-	// readLine()
-	// run()
-	// writeHeaders()
-
-
+	public static String read(DataInputStream in, int n) throws IOException {
+		StringBuilder buf = new StringBuilder();
+		int c = in.read();
+//		System.out.println("read "+(char)c);
+		int i = 1;
+		while ( c!=-1 && i < n) {
+			buf.append((char)c);
+			c = in.read();
+//			System.out.println("read "+(char)c);
+			i++;
+		}
+//		System.out.println("Done");
+		return buf.toString();
+	}
 
 }
