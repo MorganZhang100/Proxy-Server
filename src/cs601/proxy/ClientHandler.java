@@ -33,7 +33,7 @@ public class ClientHandler implements Runnable {
 		String line = din.readLine();
 		String firstLine = line;
 
-		if(line==null) {
+		if (line==null) {
 			clientSocket.close();
 			return "";
 		}
@@ -67,7 +67,6 @@ public class ClientHandler implements Runnable {
 	}
 
 	String toHost(Socket clientSocket, String processedRequestString) throws IOException {
-		//System.out.println("[C inside]" );
 		String lines[] = processedRequestString.split("\n");
 		String firstLine = lines[0];
 
@@ -80,7 +79,7 @@ public class ClientHandler implements Runnable {
 		Socket toHostSocket = new Socket(hostUrl, 80);
 		OutputStream toHostOut = toHostSocket.getOutputStream();
 		PrintStream toHostPOut = new PrintStream(toHostOut);
-				
+		
 		processedRequestString = processedRequestString.replace("HTTP/1.1","HTTP/1.0");
 		processedRequestString = processedRequestString.replace("http://" + hostUrl ,"");
 		
@@ -113,8 +112,6 @@ public class ClientHandler implements Runnable {
 		toHostSocket.close();
 		clientSocket.close();
 
-		//System.out.println("[D inside]" );
-
 		return returnData;
 	}
 
@@ -123,7 +120,7 @@ public class ClientHandler implements Runnable {
 		int c = in.read();
 
 		int i = 1;
-		while ( c!=-1 && i < n) {
+		while (c!=-1 && i<n) {
 			buf.append((char)c);
 			c = in.read();
 
