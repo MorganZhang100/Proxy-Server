@@ -1,3 +1,5 @@
+package cs601.proxy;
+
 import java.net.*;
 import java.io.*;
 
@@ -65,7 +67,7 @@ public class ClientHandler implements Runnable {
 	}
 
 	String toHost(Socket clientSocket, String processedRequestString) throws IOException {
-		System.out.println("[C inside]" );
+		//System.out.println("[C inside]" );
 		String lines[] = processedRequestString.split("\n");
 		String firstLine = lines[0];
 
@@ -111,7 +113,7 @@ public class ClientHandler implements Runnable {
 		toHostSocket.close();
 		clientSocket.close();
 
-		System.out.println("[D inside]" );
+		//System.out.println("[D inside]" );
 
 		return returnData;
 	}
