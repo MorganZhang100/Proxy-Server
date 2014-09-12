@@ -24,9 +24,10 @@ public class ClientHandler implements Runnable {
 	}
 
 	String processRequest(Socket clientSocket) throws IOException {
+		
 		InputStream in = clientSocket.getInputStream();
 		DataInputStream din = new DataInputStream(in);
-		
+
 		String line = din.readLine();
 		String firstLine = line;
 
@@ -57,7 +58,7 @@ public class ClientHandler implements Runnable {
 		String postData = null;
 		if ( firstLine.startsWith("POST") ) {
 			postData = read(din, content_length);
-			processedLine = processedLine + "\r\n" +postData;
+			processedLine = processedLine + "\r\n" + postData;
 		}
 
 		return processedLine;
@@ -94,7 +95,7 @@ public class ClientHandler implements Runnable {
 
 		OutputStream toClient = clientSocket.getOutputStream();
 		BufferedOutputStream bf = new BufferedOutputStream(toClient);
-		DataOutputStream toClientDataStream = new DataOutputStream(toClient);
+		DataOutputStream toClientDataStream = new DataOutputStream(bf);
 		
 		String responseHead = "";
 
